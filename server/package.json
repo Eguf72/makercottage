@@ -1,0 +1,22 @@
+{
+  "name": "makercottage-server",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend für den 3D-Druck-Datei-Manager (NAS via SMB)",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.3",
+    "@winlinux/auth": "^1.1.0",
+    "@winlinux/smb2": "^1.1.0",
+    "better-sqlite3": "^13.0.3",
+    "bonjour-service": "^1.3.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "sql.js": "^1.1.0"
+  }
+}
