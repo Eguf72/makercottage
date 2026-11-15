@@ -1,74 +1,12 @@
 # MakerCottage
 
-Ein schlanker **Web-Prototyp**, um **3D-Druck-Dateien** von einem **NAS** zu
-verwalten. Er listet die Dateien eines NAS-Ordners auf und erlaubt **Filter und
+Ein schlanker **Web-Prototyp**, um **3D-Druck-Dateien** zu verwalten. 
+Er listet die Dateien eines NAS-Ordners auf und erlaubt **Filter und
 Suche**. Neben den Metadaten speichert er **Tags und
 Druckinformationen** in einer lokalen **SQLite**-Datei. Die App ist bewusst
 klein gehalten und für spätere Erweiterungen gebaut (3D-Ansicht,
 Druck-Schlange, Desktop-Wrapper).
 
-> **Aktueller Stand:** v0.6.0 · Server läuft produktiv auf **Port 4000**
-> (`web/dist` wird direkt vom Disk bedient). Quelle wählbar: **NAS/SMB** (Standard)
-> oder **lokales Verzeichnis**; der Pfad lässt sich per **Picker** durchstöbern
-> statt tippen. Seit v0.2.3 verwaltet eine **SQLite-DB** alle Dateien mit
-> Metadaten, **Tags** und **Druckinformationen** – ein klickbarer Dateiname öffnet
-> ein **Detailfenster** mit zwei Tabs (Druck / Metadaten). Seit
-> **v0.3.0** gibt es einen **portablen Desktop-Launcher** (macOS zuerst,
-> `MakerCottage.command`), der das Backend **ohne Installation** startet und den
-> Browser öffnet – Basis für einen späteren Electron-Wrapper. Seit **v0.4.0**
-> liegen alle **Nutzer-Daten** (DB + config) im stabilen Ordner
-> **`~/.makercottage/`** (per `MC_HOME` überschreibbar) – ein Code-Update
-> ersetzt nur den Code-Ordner, **nicht die Daten** (kein Datenverlust). Seit
-> **v0.5.0** lässt sich eine Datei direkt im **Slicer** öffnen (Button
-> „🧩 Slicer öffnen", konfigurierbar in **Einstellungen** – Preset
-> Cura/PrusaSlicer/BambuStudio/OrcaSlicer/SuperSlicer oder Freitext), ein
-> **Hintergrund-Klick** in der Liste hebt die Auswahl auf (Rückkehr zur
-> Übersicht), und der überflüssige **📂-Button** aus der Liste ist entfernt
-> (der 📁-Marker vor Ordner-Zeilen bleibt). Seit **v0.6.0** meldet ein
-> **Remote-Update-Check** automatisch ein neues Release (GitHub-Releases, per
-> `MC_UPDATE_REPO`): der UI-Footer zeigt „⚠ Update verfügbar v… · Herunterladen"
-> und `MakerCottage.command --check` den gleichen Hinweis – ohne Konfiguration
-> (bzw. bei Fehlern) der manuelle Update-Pfad.
-
-## Aufbau
-```
-MakerCottage/
-├─ server/            # Node.js + Fastify + SMB-Backend + SQLite
-│  ├─ index.js        # API + statisches Frontend (serviert web/dist)
-│  ├─ config.js       # .env / config.json (Quelle NAS/lokal, SOURCE)
-│  ├─ paths.js        # Daten-Pfade (DB + config in ~/.makercottage/, MC_HOME) + Migration
-│  ├─ smb.js          # Verbindung + Ordner-Scan + browseNas (Picker)
-│  ├─ local.js        # lokales Verzeichnis: listFilesLocal + browseLocal (Picker)
-│  ├─ scan.js         # Typ-Erkennung, Filter, Suche, Sortierung
-│  ├─ database.js     # SQLite (better-sqlite3): file_index, scan_history, settings
-│  ├─ discover.js     # Netzwerk-Suche (mDNS/Bonjour)
-│  └─ network.js      # Netzwerk-Tools für die Discovery
-├─ web/               # Vite + React Frontend
-│  ├─ index.html      # Titelmeldung + Favicon/Manifest-Links
-│  ├─ public/         # statische Assets (werden in dist kopiert)
-│  │  ├─ MakerCottage_logo.svg   # transparentes Logo (hellgrau + orangener Pfeil)
-│  │  ├─ MakerCottage_Favicon.png  # quadrates Favicon (1024)
-│  │  ├─ favicon-192.png / favicon-512.png
-│  │  └─ manifest.json
-│  └─ src/
-│     ├─ App.jsx      # Orchestrator + Header (Logo) + Tab-Navigation + Footer (Version + Credit)
-│     ├─ version.js   # Versionsnummer (Single Source of Truth)
-│     ├─ style.css    # Farbschema (Oliv-Grund, orangener Akzent)
-│     ├─ FileList.jsx # Datei-Liste (Name-only) + Klick → Detailfenster
-│     ├─ FileDetail.jsx # Detailfenster mit zwei Tabs: Druck / Metadaten
-│     ├─ ConfigForm.jsx
-│     └─ api.js
-├─ launcher/          # ★ Launcher-Kern (plattformübergreifend, Electron-fähig)
-│  └─ launcher.mjs    #   Server als Kindprozess + Port-Warten + UI öffnen
-├─ scripts/           # Build-Skripte (portable Bundles)
-│  └─ build-macos.sh  #   → dist/makercottage-macos-arm64/ + .zip
-├─ .cache/            # LEGACY (v<0.4.0): alte DB-Stelle; bei v0.4.0 nach
-│                     #   ~/.makercottage/ migriert (Altkopie bleibt als Backup)
-├─ .env.example
-├─ FORTSCHRITT.md     # Chronologie (jüngster Eintrag oben)
-├─ AUFGABEN.md        # Aufgabenliste
-└─ README.md
-```
 
 ## Voraussetzungen
 - **Node.js 18+** (am besten 20/22) – lokal ist v26 installiert.
