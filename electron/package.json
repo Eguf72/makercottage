@@ -3,6 +3,7 @@
   "version": "0.7.0",
   "description": "MakerCottage – 3D-Druck-Dateien vom NAS/lokal verwalten (Desktop, Electron)",
   "main": "main.js",
+  "homepage": "https://github.com/Eguf72/makercottage",
   "author": "Eguf72",
   "license": "MIT",
   "private": true,
@@ -63,6 +64,9 @@
       "target": ["AppImage", "deb"],
       "category": "Utility",
       "icon": "resources/icon.png",
+      "desktopName": "MakerCottage",
+      "syncDesktopName": true,
+      "maintainer": "Eguf72 <eguf72@users.noreply.github.com>",
       "artifactName": "MakerCottage-${version}-${arch}.${ext}"
     },
     "win": {

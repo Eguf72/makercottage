@@ -99,7 +99,15 @@ else
     exit 1
   fi
   cp "$SRC" "$ROOT/bin/node"
-  echo "    Version: $( "$ROOT/bin/node" -p 'process.version' )"
+  # Version ausgeben, falls die Binär auf DIESER Host-Plattform lauffähig ist.
+  # Bei einem Cross-Build (z.B. linux-node auf einem mac-Host) ist sie das nicht
+  # -> nicht fatal, nur informativ.
+  VER="$( "$ROOT/bin/node" -p 'process.version' 2>/dev/null || true )"
+  if [ -n "$VER" ]; then
+    echo "    Version: $VER"
+  else
+    echo "    Version: (Binär ist für eine andere Plattform als der Host; Cross-Build – hier nicht ausfühbar)"
+  fi
 fi
 chmod +x "$ROOT/bin/node"
 
