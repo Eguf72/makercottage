@@ -140,10 +140,10 @@ export async function launch({ openUI = openBrowser, log } = {}) {
     console.log(`[launcher] UI per Hand öffnen: ${url}`);
   }
 
-  // Hinweis für Electron (Option C): hier z. B.
+  // Electron (Option C) empfängt { child, shutdown } und kann
   //   app.on('window-all-closed', () => shutdown('SIGTERM'))
   // einhängen. Der Child-Prozess läuft fort, bis er beendet wird.
-  return child;
+  return { child, shutdown };
 }
 
 // --- 5) CLI-Flags (--version / --check / --help) -----------------------------

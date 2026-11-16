@@ -5,6 +5,41 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 
 ---
 
+## 2026-11-16 – T45 (In Arbeit): Electron-Wrapper Option C + Security-Patch
+- **`@fastify/static` Major-Bump** `^8.0.3` → `^10.1.11` (T59, Fertig):
+  3 Security-Vulns geschlossen (path traversal, route guard bypass, auth bypass);
+  `npm audit` → 0 Vulnerabilities; Server-Smoke-Test (Port 4099) bestanden.
+- **Launcher-Interface erweitert** (`launcher/launcher.mjs`): `launch()` gibt
+  jetzt `{ child, shutdown }` zurück (statt nur `child`), damit Electron den
+  sauberen SIGTERM + SIGKILL-Fallback aufrufen kann.
+- **`electron/main.js`** (CommonJS, `contextIsolation:true`, `nodeIntegration:false`):
+  - `BrowserWindow` (1400×900, min 1024×700, `backgroundColor:#384b41`,
+    macOS `titleBarStyle:'hiddenInset'`, `trafficLightPosition`);
+  - `openUI = win.loadURL(url)` (erst `ready-to-show` → `show()`, kein weißer Blitz);
+  - `MC_HOME = app.getPath('userData')` (platform-nativ, nur wenn nicht gesetzt);
+  - `webContents.setWindowOpenHandler` → `shell.openExternal` (externe Links im Browser);
+  - `mainWindow.on('closed')` → `shutdown('SIGTERM')` (SIGKILL-Fallback in 2 s);
+  - macOS: `window-all-closed` ≠ `app.quit()` (Dock bleibt); Win/Linux: `app.quit()`;
+  - Menü: Datei/Ebearbeiten/Ansicht (plattform-abhängig, `Menu.buildFromTemplate`).
+- **`electron/preload.js`**: Absichtlich leer – `contextIsolation:true` +
+  `nodeIntegration:false`; keine IPC-Brücke nötig (Kommunikation läuft über HTTP).
+- **`electron/package.json`**: `electron@^45` + `electron-builder@^26`;
+  `extraResources`: `launcher/`, `server/` (nur `*.js` + `package.json` +
+  `node_modules/`), `web/dist/`, `bin/node`; Build-Ziele: macOS (dmg/zip,
+  `hardenedRuntime:true`), Linux (AppImage/deb), Windows (NSIS).
+- **`scripts/build-electron.sh`** (6 Schritte):
+  (1) Vite-Build → `web/dist/`, (2) Node-Binär aus Cache/Download → `bin/`,
+  (3) Staging-Verzeichnis (`electron/.stage/`), (4) `npm install` in `electron/`,
+  (5) `electron-builder` (Target `mac|linux|win|all`), (6) Output-Listing.
+- **`.gitignore`**: `GitHub.txt` hinzugefügt (Token lokal, nie committed).
+- **Verifiziert:** `node --check` (main.js + preload.js) grün;
+  `launcher.mjs` `node --check` grün.
+- **Offen für T45:** native Builds (CI/Plattform), Icon-Dateien
+  (`.icns`/`.ico`/`.png`), Code-Signing + Notarization (macOS, kostenpflichtig),
+  Versions-Bump (v0.7.0, Entscheidung offen).
+
+---
+
 ## 2026-11-15 – v0.6.0: Remote-Update-Check (P2b)
 - **Geteiltes Modul `server/updatecheck.js`** (kein Fastify/React → von **Server
   UND Launcher** importiert): `checkForUpdate()` (wirft **nie**),

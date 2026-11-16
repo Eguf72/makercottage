@@ -2,6 +2,9 @@
 node_modules/
 **/node_modules/
 
+# Electron-Build-Staging (von build-electron.sh erzeugt)
+electron/.stage/
+
 # Build-Ausgabe
 dist/
 web/dist/

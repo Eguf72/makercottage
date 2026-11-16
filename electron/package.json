@@ -1,0 +1,70 @@
+{
+  "name": "makercottage",
+  "version": "0.6.0",
+  "description": "MakerCottage – 3D-Druck-Dateien vom NAS/lokal verwalten (Desktop, Electron)",
+  "main": "main.js",
+  "author": "Eguf72",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.makercottage.app",
+    "productName": "MakerCottage",
+    "directories": {
+      "output": "../dist/electron",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../launcher",
+        "to": "launcher"
+      },
+      {
+        "from": "../server",
+        "to": "app",
+        "filter": ["**/*.js", "package.json", "node_modules/**"]
+      },
+      {
+        "from": "../web/dist",
+        "to": "web/dist"
+      },
+      {
+        "from": "../bin",
+        "to": "bin",
+        "filter": ["node", "node.exe"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "icon": "resources/icon.icns"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "icon": "resources/icon.png",
+      "artifactName": "MakerCottage-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "resources/icon.ico",
+      "artifactName": "MakerCottage-Setup-${version}-${arch}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}
