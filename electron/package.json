@@ -64,8 +64,6 @@
       "target": ["AppImage", "deb"],
       "category": "Utility",
       "icon": "resources/icon.png",
-      "desktopName": "MakerCottage",
-      "syncDesktopName": true,
       "maintainer": "Eguf72 <eguf72@users.noreply.github.com>",
       "artifactName": "MakerCottage-${version}-${arch}.${ext}"
     },
