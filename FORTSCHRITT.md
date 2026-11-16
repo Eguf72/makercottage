@@ -5,6 +5,42 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 
 ---
 
+## 2026-11-16 (CI) – T60: native Cross-Platform-Builds via GitHub-Actions
+- **`.github/workflows/electron-build.yml`** (neu): Job `build` (Matrix) + Job `release`.
+  - **Matrix – 3 native Builds, KEIN Cross-Compile** (jeder native Runner baut seine
+    eigene Plattform, damit `bin/node` + native-Prebuild + electron-builder passen):
+    `macos-latest`→`mac`/arm64 · `ubuntu-latest`→`linux`/x64 · `windows-latest`→`win`/x64.
+  - **Auslöser:** Push eines `v*`-Tags → 3 Builds + **Auto-GitHub-Release**
+    (`gh release create` mit den Artifacts, `GH_TOKEN`); `workflow_dispatch` → nur
+    Builds + Artifacts (kein Release, `if: startsWith(github.ref,'refs/tags/v')`).
+  - **Zweck:** Erst ein existierendes Release mit Artifacts lässt den P2b-Remote-Check
+    (`/api/update/check`, T58) `available:true` liefern – das war der letzte Schritt,
+    damit T58/T45 end-to-end funktionieren.
+- **`scripts/build-electron.sh` plattformfähig gemacht** (macOS **und** Linux):
+  Auto-Erkennung `PLATFORM` (Darwin→mac, sonst linux) + `ARCH`
+  (`uname -m`→x64/arm64); Node-Tarball `node-{v}-{darwin|linux}-{arch}.tar.xz`;
+  `npm ci` statt `npm install` (Lockfiles sind in Sync → reproduzierbar).
+  Neuer Schritt **server `npm ci`** → liefert den native-Prebuild von
+  `better-sqlite3`/`kerberos` (N-API, ABI-stabil → **kein `electron-rebuild`**).
+- **`scripts/build-electron.ps1` (neu, Windows):** PowerShell-Äquivalent –
+  win-x64-`node.exe` aus `nodejs.org` zip laden, `npm ci` (server + electron),
+  `electron-builder --win` (NSIS `.exe`), `UNSIGNED=1`.
+- **Architektur bestätigt (warum das ohne Rebuild klappt):** Server läuft im Bundle
+  als **Kindprozess** auf `bin/node`; native Module (`better-sqlite3` v13, `kerberos` v7)
+  nutzen **N-API** und liefern **alle Plattform-Prebuilds im npm-Paket** mit →
+  `npm ci` pro Runner wählt den passenden `*.node`, electron-builder kopiert nur.
+  Die EINZIGE plattformspezifische Sache ist `bin/node` (wird pro PLATFORM geladen).
+- **Windows-Hinweis (limitiert, nicht blockierend):** `@winlinux/krb-session-key` hat
+  **keinen win32-Prebuild** → Kerberos-SMB auf Windows inaktiv
+  (App-Start + nicht-Kerberos-SMB funktionieren; Build selbst nicht betroffen).
+- **Verifiziert (konservativ):** `bash -n scripts/build-electron.sh` grün; YAML gültig
+  (Ruby-Parser: `jobs: build, release`, Matrix mac-arm64/linux-x64/win-x64);
+  Lockfiles (web/server/electron) mit `0.7.0`-`package.json` in Sync → `npm ci`-sicher.
+  **Noch nicht live-gelaufen:** erster CI-Lauf wartet auf den `v*`-Tag-Push
+  (lokaler Test auf dem User-Runner ohne Signing bleibt der `UNSIGNED=1`-Standard).
+
+---
+
 ## 2026-11-16 – v0.7.0: Versions-Bump (T45 Electron-Wrapper)
 - **Minor-Bump `0.6.0` → `0.7.0`** (neue Fähigkeit: gebautes Desktop-App-Bundle
   via Electron / Option C). Konsistent in allen Quellen:

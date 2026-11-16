@@ -1,0 +1,158 @@
+# MakerCottage – native Cross-Platform-Builds (Option C / Electron, T45)
+#
+# Baut die drei nativen Installer und (bei v*-Tag) ein GitHub-Release, damit der
+# Remote-Update-Check (P2b, /api/update/check) "available: true" liefern kann.
+#
+# Architektur (Kurzform): der Server lauft im Bundle als KINDPROZESS auf der
+# mitgelieferten bin/node. Native Module (better-sqlite3, kerberos, krb-session-key)
+# sind N-API-basiert und liefern ihre Prebuilds je Plattform -> kein electron-rebuild.
+# Die einzige plattformspezifische Sache ist bin/node (wird pro PLATFORM geladen).
+#
+# Ausloeser:
+#   - push eines v*-Tags        -> 3 Builds + GitHub-Release (Artifacts)
+#   - manual (workflow_dispatch) -> 3 Builds + Artifacts (KEIN Release)
+
+name: electron-build
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+# permissions:
+#   contents: write -> Release-Artefakte hochladen
+#   actions:  read  -> Artifacts der Build-Jobs herunterladen
+permissions:
+  contents: write
+  actions: read
+
+env:
+  # Muss zu den besser-sqlite3-/kerberos-NAPI-Prebuilds passen (ABI-stabil ueber
+  # Versionen; hier exakt die lokal getestete Binair).
+  NODE_VERSION: 'v26.13.0'
+
+jobs:
+  build:
+    name: build (${{ matrix.platform }}-${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+            target: mac
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: linux
+          - os: windows-latest
+            platform: win
+            arch: x64
+            target: win
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node, der die CI-Tooling (npm/electron-builder) laufen laesst. Wir pinnen
+      # den selbem Major wie bin/node, damit prebuild-install NAPI-Prebuilds laedt,
+      # die exakt zu bin/node (v26, NAPI 10) passen.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
+      # node-gyp-Fallback fuer kerberos (prebuild-install || node-gyp rebuild).
+      # Kein Download noetig, wenn ein NAPI-Prebuild existiert; Sicherheit geht vor.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # Kompilieren noetig NUR, falls ein NAPI-Prebuild fehlt (kerberos-Fallback).
+      - name: Install build toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      # Windows: VS Build Tools sind im Image enthalten; Python ueber setup-python.
+
+      - name: Build + package installer (macOS / Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          TARGET: ${{ matrix.target }}
+          UNSIGNED: '1'
+          NODE_VERSION: ${{ env.NODE_VERSION }}
+        run: bash scripts/build-electron.sh
+
+      - name: Build + package installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          TARGET: ${{ matrix.target }}
+          UNSIGNED: '1'
+          NODE_VERSION: ${{ env.NODE_VERSION }}
+        run: pwsh -File scripts/build-electron.ps1
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: makercottage-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/electron/*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Release: nur bei echtem v*-Tag automatisch (P2b braucht ein existierendes
+  # Release mit Artifacts). Manuelle Ausloesung (workflow_dispatch) baut nur.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release-assets
+
+      - name: Create / update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          notes="$(mktemp)"
+          {
+            echo "MakerCottage $TAG – native Installer (un-signiert)."
+            echo ""
+            echo "- **macOS** (.dmg / .zip, arm64): Gatekeeper-Entwarnung nötig –"
+            echo "  Rechtsklick → „Öffnen“, oder:  xattr -dr com.apple.quarantine <App>"
+            echo "- **Linux** (AppImage / .deb, x64)"
+            echo "- **Windows** (.exe / NSIS, x64)"
+            echo ""
+            echo "Nutzer-Daten (DB + config) liegen in \`.makercottage\` (MC_HOME) und"
+            echo "überstehen ein Update – ein neuer Ordner wird DABEIN entpackt."
+            echo ""
+            echo "Remote-Update-Check einschalten:  MC_UPDATE_REPO=owner/repo"
+            echo "(Default: Eguf72/makercottage)."
+          } > "$notes"
+
+          # --clobber: Idempotent. Ein Re-Run desselben Tags (oder ein
+          # bereits existierendes Release) wird ueberschrieben, statt hart
+          # zu fehlschlagen.
+          gh release create "$TAG" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "MakerCottage $TAG" \
+            --notes-file "$notes" \
+            --clobber \
+            release-assets/*
