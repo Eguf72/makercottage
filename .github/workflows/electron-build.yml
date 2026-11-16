@@ -149,6 +149,11 @@ jobs:
             echo "(Default: Eguf72/makercottage)."
           } > "$notes"
 
+          # Zippe alle Assets aus dem Download-Verzeichnis, damit gh release create
+          # keine Verzeichnisse (wie linux-unpacked) als Dateien überspielt.
+          # Es entsteht ein einziges Archiv mit allen Installern.
+          zip -j release-assets.zip release-assets/*
+
           # --clobber deaktiviert: gh CLI v2.338.2 kennt diese Flag nicht.
           # Re-Run auf denselben Tag schlägt fehl – ist ok, da der Workflow nur
           # bei neuem v*-Tag-Push (bzw. workflow_dispatch) triggert.
@@ -156,4 +161,4 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --title "MakerCottage $TAG" \
             --notes-file "$notes" \
-            release-assets/*
+            release-assets.zip
