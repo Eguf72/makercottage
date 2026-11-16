@@ -36,23 +36,34 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 - **Verifiziert (konservativ):** `bash -n scripts/build-electron.sh` grün; YAML gültig
   (Ruby-Parser: `jobs: build, release`, Matrix mac-arm64/linux-x64/win-x64);
   Lockfiles (web/server/electron) mit `0.7.0`-`package.json` in Sync → `npm ci`-sicher.
-  **Live-Status (2026-11-16, ~17:35Z, aktualisiert):** GitHub-Actions ist
+  **Live-Status (2026-11-16, ~18:16Z, aktualisiert):** GitHub-Actions ist
   **aktiv** (`GET /actions/permissions` → `enabled:true, allowed_actions:all`;
-  das „Actions inaktiv"-Fazit oben war veraltet). Der erste Lauf
-  `43901488096` (workflow_dispatch auf Commit `dbda39a`) lief:
-  - **win-x64 → success** (`MakerCottage.exe` + NSIS-Installer gebaut).
-  - **linux-x64 → failure** (nach 19 s): `mktemp: too few X's in template
-    'mcnode'` in `scripts/build-electron.sh` – `mktemp -t mcnode` hatte 0 X's;
-    BSD- (macOS) und GNU- (Linux) `mktemp` brauchen min. 3 X's AM ENDE der
-    Template. **Fest + fix** → `mktemp "${TMPDBDIR:-/tmp}/mcnode-XXXXXX"`
-    (portabel; gleich in `scripts/build-macos.sh` korrigiert).
-  - **mac-arm64 → cancelled** (nach 15 Min, extern gecancelt – vermutlich
-    „sieht aus wie hängend"; kein echtes Hang, da lokaler mac-Build in ~2 Min
-    grün. Log des cancelled-Jobs ist nicht mehr abrufbar.).
-  - **release-Job → skipped** (warnt auf green Build; `--clobber` idempotent).
-  **Nächster Schritt:** Fix committen + `v0.7.0`-Tag neu pushen (Tag löschen +
-  recreate), damit ein neuer Build+Release-Run startet. Danach: 3 Builds
-  grün → Auto-Release mit Artifacts → P2b `/api/update/check` `available:true`.
+  das „Actions inaktiv"-Fazit oben war veraltet). Fix-Verlauf (3 Commits,
+  Tag `v0.7.0` jeweils neu gepusht → neuer Build+Release-Run):
+  - **Run `43901488096` (commit `dbda39a`):** win ✅ · linux ❌ `mktemp: too
+    few X's in template 'mcnode'` (19 s) · mac cancelled (extern) · release
+    skipped. **Bug #1** = `mktemp -t mcnode` (0 X's; BSD- + GNU-`mktemp`
+    brauchen mind. 3 X's AM ENDE). → `mktemp "${TMPDIR:-/tmp}/mcnode-XXXXXX"`
+    (portabel; gleich in `scripts/build-macos.sh` korrigiert). Commit `de4de94`.
+  - **Run `43910206439` (commit `de4de94`):** win ✅ · mac ✅ · linux ❌
+    `Please specify project homepage` (57 s). **Bug #2** = electron-builder
+    erzwingt `homepage` für Linux-Target (AppImage/deb) und macOS; NSIS (Win)
+    nicht. → `homepage` + `maintainer` ergänzt. Commit `cb10910`.
+  - **Run `43912854638` (commit `cb10910`):** linux ❌ `Invalid configuration
+    object` (57 s). **Bug #3** = `desktopName`/`syncDesktopName` im
+    `linux`-Block sind in electron-builder 26.18.0 **nicht** im Schema (die
+    Warnung „set desktopName … syncDesktopName: true" ist nur eine Empfehlung,
+    kein gültiges Schema-Feld) → beide entfernt; `homepage`+`maintainer` sind
+    das lokal-validierte Set (AppImage 207 MB + deb 155 MB GRÜN). Commit
+    `d609981`.
+  - **Lokaler Cross-Build-Validierung** (macOS-Host): `electron-builder --linux`
+    baut `MakerCottage-0.7.0-arm64.AppImage` + `.deb` ohne Schema-Fehler.
+  - **Aktueller Run `43915028030` (commit `d609981`):** win-x64 ✅ ·
+    linux-x64 ✅ · **mac-arm64 noch im GitHub-Runner-Queue** (macos-latest-
+    Kapazität; im früheren Run lief mac in 4 Min durch) · release wartet
+    (`needs: build`).
+  **Nächster Schritt:** mac-Job durchlaufen lassen (GitHub-Queue), dann
+  Auto-Release mit 3 Artifacts → P2b `/api/update/check` `available:true`.
 
 ---
 
