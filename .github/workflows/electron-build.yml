@@ -147,9 +147,9 @@ jobs:
             echo "(Default: Eguf72/makercottage)."
           } > "$notes"
 
-          # --clobber: Idempotent. Ein Re-Run desselben Tags (oder ein
-          # bereits existierendes Release) wird ueberschrieben, statt hart
-          # zu fehlschlagen.
+          # --clobber entfernt: diese gh CLI-Version (2.338.2) kennt es nicht.
+          # Ein Re-Run desselben Tags schlägt fehl, aber der Workflow triggert
+          # nur bei neuem v*-Tag-Push (workflow_dispatch baut nur, kein Release).
           gh release create "$TAG" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "MakerCottage $TAG" \
