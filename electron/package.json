@@ -46,6 +46,10 @@
         "from": "../bin",
         "to": "bin",
         "filter": ["node", "node.exe"]
+      },
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
       }
     ],
     "mac": {

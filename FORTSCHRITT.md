@@ -5,6 +5,26 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 
 ---
 
+## 2026-11-16 (GUI-Live-Test) – T45: Fenster-Start + Icon-Fix
+- **GUI-Fenster live getestet** (der letzte noch ungetestete Teil von T45):
+  gebautes `.app` startet auf Port 4056, `bin/node`-Kindprozess läuft,
+  `openUI=win.loadURL()` lädt die UI, Log zeigt `[launcher] UI geöffnet:
+  http://127.0.0.1:4056` + Frontend-Assets (`/`, JS, CSS) + alle API-
+  Endpoints (`/api/config`, `/api/types`, `/api/version`, `/api/update/check`,
+  `/MakerCottage_logo.svg`) liefern 200. Sauberes Beenden via SIGTERM
+  (Fenster → `shutdown('SIGTERM')`) bestätigt.
+- **Icon-Pfad-Fix** (gefunden im Live-Log): `Failed to load image from
+  '.../app.asar/resources/icon.png'`. Ursache: im gepackten App ist
+  `__dirname` in `app.asar` → `path.join(__dirname,'resources','icon.png')`
+  führte zu einem inexistenten Pfad. Fix: `iconPath` nutzt im gepackten App
+  `process.resourcesPath/icon.png` (via neue `extraResources`-Entry
+  `resources/icon.png → icon.png`), in der Entwicklung `__dirname/resources`.
+  `icon.png` liegt jetzt unter `Contents/Resources/`; Warnung im Log weg.
+- **T45 damit: Code + Build + GUI-Start verifiziert.** Offen bleiben nur
+  externe Abhängigkeiten (Signing/Notarization, native Cross-Platform-Builds).
+
+---
+
 ## 2026-11-16 (Fortsetzung) – T45: Icons + electron-builder-Test (ohne Signing)
 - **Icon-Generierung** (`scripts/generate-icons.sh` + `scripts/ico-from-png.mjs`):
   aus `web/public/MakerCottage_Favicon.png` (1024×1024) →

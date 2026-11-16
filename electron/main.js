@@ -46,6 +46,15 @@ async function createWindow() {
 
   const isMac = process.platform === 'darwin';
 
+  // Fenster-Icon:
+  //   Gepackt:    process.resourcesPath/icon.png (via extraResources)
+  //   Entwicklung: __dirname/resources/icon.png (relativ zu electron/)
+  // Auf macOS hat das Bundle-Icon (.icns, über mac.icon) Vorrang für den Dock;
+  // der BrowserWindow-Icon-Weg betrifft primär Windows/Linux (Taskleiste).
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.png')
+    : path.join(__dirname, 'resources', 'icon.png');
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -54,9 +63,7 @@ async function createWindow() {
     title: 'MakerCottage',
     show: false, // erst laden, dann zeigen (kein weißer Blitz)
     backgroundColor: '#384b41', // Oliven-Grund (Farbschema v0.5.0)
-    icon: isMac
-      ? path.join(__dirname, 'resources', 'icon.png')
-      : undefined,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
