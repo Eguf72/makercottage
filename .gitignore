@@ -22,6 +22,7 @@ http:/
 .env
 server/.env
 server/config.json
+GitHub.txt
 
 # Logdateien
 *.log
