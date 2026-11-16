@@ -5,6 +5,24 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 
 ---
 
+## 2026-11-16 – v0.7.0: Versions-Bump (T45 Electron-Wrapper)
+- **Minor-Bump `0.6.0` → `0.7.0`** (neue Fähigkeit: gebautes Desktop-App-Bundle
+  via Electron / Option C). Konsistent in allen Quellen:
+  - `server/package.json`, `web/package.json`, `electron/package.json` → `0.7.0`
+  - `web/src/version.js` `VERSION` → `'0.7.0'` (+ Changelog-Kommentar v0.7.0)
+  - `server/database.js` `defaultSettings` `version` → `'0.7.0'`
+    (nur neue DBs; bestehende behalten ihren gespeicherten Wert)
+  - alle 3 `package-lock.json`-Roots synchron (server/electron `0.6.0`→`0.7.0`;
+    web war bereits drift bei `0.1.0` → jetzt `0.7.0`)
+  - `db_version` bleibt `5` (kein Schema-Änderung).
+- **`AUFGABEN.md`** „Stand: 2026-11-16 · v0.7.0".
+- **Verifizierung:** `node --check` (server/launcher), Vite-Build grün,
+  `GET /api/version` → `0.7.0`, Electron-Build `MakerCottage-0.7.0-arm64.*`.
+- **Historische `0.6.0`-Referenzen** (FORTSCHRITT/PLAN/Code-Kommentare)
+  bewusst belassen – sie dokumentieren „erledigt in v0.6.0".
+
+---
+
 ## 2026-11-16 (GUI-Live-Test) – T45: Fenster-Start + Icon-Fix
 - **GUI-Fenster live getestet** (der letzte noch ungetestete Teil von T45):
   gebautes `.app` startet auf Port 4056, `bin/node`-Kindprozess läuft,

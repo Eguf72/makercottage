@@ -77,7 +77,7 @@ const printColumns = [
 
 // Standard-Einstellungen setzen (falls noch nicht vorhanden)
 const defaultSettings = [
-  ['version', '0.6.0'],
+  ['version', '0.7.0'],
   ['db_version', '5'],
   // Referenzpreis für die automatische Kostenschätzung (€/kg) im Druck-Tab.
   ['filament_price_per_kg', '20'],

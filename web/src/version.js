@@ -64,4 +64,11 @@
 //          MC_UPDATE_REPO (Default Eguf72/makercottage), -GH_TOKEN, -GITHUB_API,
 //          -TIMEOUT_MS, -CACHE_MS; leerer/fehlender Wert -> manueller Pfad.
 //          -> Minor +1 (neue Fähigkeit).
-export const VERSION = '0.6.0';
+// v0.7.0 – Electron-Wrapper (Option C, T45): gebautes Desktop-App-Bundle
+//          (.dmg/.zip/.app via electron-builder) mit BrowserWindow (openUI=
+//          loadURL), platform-nativem MC_HOME (app.getPath('userData')),
+//          Menü + sauberem Beenden (Fenster → SIGTERM). Server läuft weiter
+//          als Kindprozess auf bin/node (better-sqlite3-ABI). Icons aus dem
+//          Favicon; un-signiert lokal testbar (UNSIGNED=1). Offen: Signing/
+//          Notarization + native Cross-Platform-Builds (CI). -> Minor +1
+export const VERSION = '0.7.0';

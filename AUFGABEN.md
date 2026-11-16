@@ -1,6 +1,6 @@
 # MakerCottage – Aufgabenliste
 
-> Stand: 2026-11-15 · v0.6.0
+> Stand: 2026-11-16 · v0.7.0
 > Fortschritt im Detail: `FORTSCHRITT.md`
 
 ## Legende (Zustand)
