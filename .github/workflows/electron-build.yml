@@ -9,9 +9,12 @@
 # Die einzige plattformspezifische Sache ist bin/node (wird pro PLATFORM geladen).
 #
 # Auslöser:
-#   - push eines v*-Tags        -> 3 Builds (Cache-Problem bei YAML-Änderungen;
-#     arbeitsfähig, aber nicht garantiert aktuellster Stand)
-#   - manual (workflow_dispatch) -> 3 Builds + Release (garantiert aktuellen YAML-Stand)
+#   - push eines v*-Tags        -> 3 Builds + GitHub-Release (mit Installer-Assets).
+#     WICHTIG: GitHub Actions laedt das Workflow-YAML aus dem Commit, auf den
+#     der Tag zeigt. Der Tag MUSS also auf den aktuellsten Commit zeigen, sonst
+#     laeuft ein veraltetes YAML (das waren die "directory"/"--clobber"-Fehler:
+#     der Tag zeigte auf einen alten Commit, nicht auf den Fix-Commit).
+#   - manual (workflow_dispatch) -> 3 Builds (KEIN Release, da kein Tag-Ref).
 
 name: electron-build
 
@@ -109,7 +112,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: makercottage-${{ matrix.platform }}-${{ matrix.arch }}
-          path: dist/electron/*
+          # NUR die Installer-Dateien (keine unpacked-Verzeichnisse wie
+          # linux-unpacked/ oder mac-arm64/) -> verhindert den "is a directory"
+          # Fehler beim Release-Asset-Upload. if-no-files-found: error greift nur,
+          # wenn KEIN Muster trifft; jede Plattform liefert min. einen Installer.
+          path: |
+            dist/electron/*.AppImage
+            dist/electron/*.deb
+            dist/electron/*.dmg
+            dist/electron/*.zip
+            dist/electron/*.exe
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -150,16 +162,17 @@ jobs:
             echo "(Default: Eguf72/makercottage)."
           } > "$notes"
 
-          # Zippe alle Assets aus dem Download-Verzeichnis, damit gh release create
-          # keine Verzeichnisse (wie linux-unpacked) als Dateien überspielt.
-          # Es entsteht ein einziges Archiv mit allen Installern.
-          zip -j release-assets.zip release-assets/*
-
-          # --clobber deaktiviert: gh CLI v2.338.2 kennt diese Flag nicht.
-          # Re-Run auf denselben Tag schlägt fehl – ist ok, da der Workflow nur
-          # bei neuem v*-Tag-Push (bzw. workflow_dispatch) triggert.
+          # Der Build-Job laedt ausschliesslich Installer-Dateien hoch (siehe
+          # "Upload installer"), also ist release-assets/* ein reiner Dateimix
+          # (AppImage/deb/dmg/mac.zip/Setup.exe) – keine Verzeichnisse, kein
+          # "is a directory"-Fehler. Kein Zip nötig.
+          # --clobber entfaellt: die gh CLI v2.338.2 kennt die Flag nicht; ein
+          # Re-Run auf denselben Tag scheitert, ist aber ok, weil der Release-Job
+          # nur bei neuem v*-Tag triggert (kein Clobber nötig).
+          echo "==> Release-Assets (Installer, flach):"
+          ls -la release-assets
           gh release create "$TAG" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "MakerCottage $TAG" \
             --notes-file "$notes" \
-            release-assets.zip
+            release-assets/*
