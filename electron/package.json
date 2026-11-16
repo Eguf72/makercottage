@@ -32,7 +32,11 @@
       {
         "from": "../server",
         "to": "app",
-        "filter": ["**/*.js", "package.json", "node_modules/**"]
+        "filter": ["**/*.js", "package.json", "!package/**", "!.env", "!config.json"]
+      },
+      {
+        "from": "../server/node_modules",
+        "to": "app/node_modules"
       },
       {
         "from": "../web/dist",

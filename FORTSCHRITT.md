@@ -5,7 +5,40 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 
 ---
 
-## 2026-11-16 – T45 (In Arbeit): Electron-Wrapper Option C + Security-Patch
+## 2026-11-16 (Fortsetzung) – T45: Icons + electron-builder-Test (ohne Signing)
+- **Icon-Generierung** (`scripts/generate-icons.sh` + `scripts/ico-from-png.mjs`):
+  aus `web/public/MakerCottage_Favicon.png` (1024×1024) →
+  `electron/resources/icon.icns` (macOS, via `sips`+`iconutil`, 10 Größen),
+  `icon.png` (512×512, Linux), `icon.ico` (256×256-PNG im .ico, Windows 7+;
+  Node-Fallback, da `png2ico` offline nicht verfügbar). Alle drei validiert
+  (`file` + `iconutil`-Reverse-Check).
+- **Kritischer Bundling-Fix** (gefunden durch Inspektion des `.app`):
+  `app/node_modules` fehlte komplett im Bundle → der Server hätte
+  `better-sqlite3` nicht laden können und beim Start gecrasht. Ursache:
+  `extraResources`-Filter `node_modules/**` wird von electron-builder nicht
+  rekursiv kopiert. **Fix:** `node_modules` als **eigene, filterfreie**
+  `extraResources`-Entry (`../server/node_modules` → `app/node_modules`);
+  Server-JS-Entry schließt `package/`, `.env`, `config.json` aus.
+- **`scripts/build-electron.sh`** (5 Schritte, statt 6): totes `.stage/`-Staging
+  entfernt (electron-builder staged selbst via `extraResources`); **Cache-Pfad-Bug
+  gefixt** (`sed arm64→aarch64` passte nicht zum Cache-Ordner `darwin-arm64`);
+  `UNSIGNED=1` → `CSC_IDENTITY_AUTO_DISCOVERY=false` (ohne Signing).
+- **`.gitignore`**: `bin/` (147 MB Node-Binär, Build-Artefakt) ausgeschlossen;
+  toter `electron/.stage/`-Eintrag entfernt.
+- **`electron-builder --mac` un-signiert getestet** – baut `.dmg` (198 MB) +
+  `.zip` + `.app`; „no node modules found in collection" bestätigt die
+  Architektur (besser-sqlite3 läuft auf `bin/node` als Kindprozess, **kein
+  electron-rebuild nötig**).
+- **End-to-End-Smoke aus dem `.app`-Bundle** (nicht-invasiv, `NO_OPEN=1`):
+  Server startet aus `.app`'s `bin/node`; `/api/config` + `/api/update/check`
+  (P2b: `configured:true, current:0.6.0, source:github:Eguf72/makercottage`,
+  graceful `available:false` da noch keine GitHub-Releases) antworten.
+- **Offen für T45:** GUI-Fenster-Start (braucht Display), native Cross-Platform-
+  Builds (CI), Code-Signing + Notarization (Apple Developer ID, 99 €/Jahr).
+
+---
+
+## 2026-11-16 – T45 (Fertig Code): Electron-Wrapper Option C + Security-Patch
 - **`@fastify/static` Major-Bump** `^8.0.3` → `^10.1.11` (T59, Fertig):
   3 Security-Vulns geschlossen (path traversal, route guard bypass, auth bypass);
   `npm audit` → 0 Vulnerabilities; Server-Smoke-Test (Port 4099) bestanden.

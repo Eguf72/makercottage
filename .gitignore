@@ -2,12 +2,12 @@
 node_modules/
 **/node_modules/
 
-# Electron-Build-Staging (von build-electron.sh erzeugt)
-electron/.stage/
-
 # Build-Ausgabe
 dist/
 web/dist/
+
+# Gebündelte Node-Binär (Build-Artefakt, plattformspezifisch – via build-Scripts geladen)
+bin/
 
 # Mitgelieferter npm-Paket-Sourcenordner (vendor-artig, gehört nicht ins Repo)
 server/package/
