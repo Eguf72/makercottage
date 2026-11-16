@@ -147,9 +147,9 @@ jobs:
             echo "(Default: Eguf72/makercottage)."
           } > "$notes"
 
-          # --clobber entfernt: diese gh CLI-Version (2.338.2) kennt es nicht.
-          # Ein Re-Run desselben Tags schlägt fehl, aber der Workflow triggert
-          # nur bei neuem v*-Tag-Push (workflow_dispatch baut nur, kein Release).
+          # --clobber deaktiviert: gh CLI v2.338.2 kennt diese Flag nicht.
+          # Re-Run auf denselben Tag schlägt fehl – ist ok, da der Workflow nur
+          # bei neuem v*-Tag-Push (bzw. workflow_dispatch) triggert.
           gh release create "$TAG" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "MakerCottage $TAG" \
