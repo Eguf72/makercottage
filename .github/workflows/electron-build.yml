@@ -8,9 +8,10 @@
 # sind N-API-basiert und liefern ihre Prebuilds je Plattform -> kein electron-rebuild.
 # Die einzige plattformspezifische Sache ist bin/node (wird pro PLATFORM geladen).
 #
-# Ausloeser:
-#   - push eines v*-Tags        -> 3 Builds + GitHub-Release (Artifacts)
-#   - manual (workflow_dispatch) -> 3 Builds + Artifacts (KEIN Release)
+# Auslöser:
+#   - push eines v*-Tags        -> 3 Builds (Cache-Problem bei YAML-Änderungen;
+#     arbeitsfähig, aber nicht garantiert aktuellster Stand)
+#   - manual (workflow_dispatch) -> 3 Builds + Release (garantiert aktuellen YAML-Stand)
 
 name: electron-build
 
