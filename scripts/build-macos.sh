@@ -65,7 +65,9 @@ if [ "$NODE_SOURCE" = "download" ]; then
   else
     URL="https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-darwin-${ARCH}.tar.xz"
     echo "    Herunterladen: $URL"
-    TAR="$(mktemp -t mcnode).tar.xz"
+    # Portables Tempfile: X's AM ENDE der Template (mind. 3, hier 6). Kein
+    # .tar.xz-Suffix; "tar -xJf" erzwengt Xz-Extraktion ohne Dateiendung.
+    TAR="$(mktemp "${TMPDIR:-/tmp}/mcnode-XXXXXX")"
     curl -fsSL "$URL" -o "$TAR"
     # erst in den Cache entpacken, dann in den Bundle kopieren
     mkdir -p "$NODE_CACHE"

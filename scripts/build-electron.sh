@@ -85,7 +85,10 @@ if [ -x "$NODE_CACHE/bin/node" ]; then
 else
   URL="https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-${NODE_PLAT}-${ARCH}.tar.xz"
   echo "    Herunterladen: $URL"
-  TAR="$(mktemp -t mcnode).tar.xz"
+  # Portables Tempfile: X's AM ENDE der Template (mind. 3, hier 6) -> laeuft auf
+  # macOS (BSD-mktemp) UND Linux (GNU-mktemp). Kein .tar.xz-Suffix noetig;
+  # "tar -xJf" erzwengt Xz-Extraktion unabhaengig von der Dateiendung.
+  TAR="$(mktemp "${TMPDIR:-/tmp}/mcnode-XXXXXX")"
   curl -fsSL "$URL" -o "$TAR"
   mkdir -p "$NODE_CACHE"
   tar -xJf "$TAR" -C "$NODE_CACHE"

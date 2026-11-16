@@ -36,8 +36,23 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 - **Verifiziert (konservativ):** `bash -n scripts/build-electron.sh` grün; YAML gültig
   (Ruby-Parser: `jobs: build, release`, Matrix mac-arm64/linux-x64/win-x64);
   Lockfiles (web/server/electron) mit `0.7.0`-`package.json` in Sync → `npm ci`-sicher.
-  **Noch nicht live-gelaufen:** erster CI-Lauf wartet auf den `v*`-Tag-Push
-  (lokaler Test auf dem User-Runner ohne Signing bleibt der `UNSIGNED=1`-Standard).
+  **Live-Status (2026-11-16, ~17:35Z, aktualisiert):** GitHub-Actions ist
+  **aktiv** (`GET /actions/permissions` → `enabled:true, allowed_actions:all`;
+  das „Actions inaktiv"-Fazit oben war veraltet). Der erste Lauf
+  `43901488096` (workflow_dispatch auf Commit `dbda39a`) lief:
+  - **win-x64 → success** (`MakerCottage.exe` + NSIS-Installer gebaut).
+  - **linux-x64 → failure** (nach 19 s): `mktemp: too few X's in template
+    'mcnode'` in `scripts/build-electron.sh` – `mktemp -t mcnode` hatte 0 X's;
+    BSD- (macOS) und GNU- (Linux) `mktemp` brauchen min. 3 X's AM ENDE der
+    Template. **Fest + fix** → `mktemp "${TMPDBDIR:-/tmp}/mcnode-XXXXXX"`
+    (portabel; gleich in `scripts/build-macos.sh` korrigiert).
+  - **mac-arm64 → cancelled** (nach 15 Min, extern gecancelt – vermutlich
+    „sieht aus wie hängend"; kein echtes Hang, da lokaler mac-Build in ~2 Min
+    grün. Log des cancelled-Jobs ist nicht mehr abrufbar.).
+  - **release-Job → skipped** (warnt auf green Build; `--clobber` idempotent).
+  **Nächster Schritt:** Fix committen + `v0.7.0`-Tag neu pushen (Tag löschen +
+  recreate), damit ein neuer Build+Release-Run startet. Danach: 3 Builds
+  grün → Auto-Release mit Artifacts → P2b `/api/update/check` `available:true`.
 
 ---
 
