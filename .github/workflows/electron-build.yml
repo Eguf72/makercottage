@@ -17,7 +17,9 @@ name: electron-build
 on:
   push:
     tags: ['v*']
-  workflow_dispatch: {}
+    # Trigger: neue v*-Tags starten Build + Release
+  workflow_dispatch:
+    # Manueller Trigger (baut nur, kein Release)
 
 # permissions:
 #   contents: write -> Release-Artefakte hochladen
