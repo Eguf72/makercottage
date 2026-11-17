@@ -339,19 +339,3 @@ gespeichert – ohne externe DB-Instanz.
 - `better-sqlite3` ist ein **natives Modul**, nutzt aber **N-API** → Prebuilds
   sind im Paket enthalten; bei einem echten Plattformwechsel ohne passenden
   Prebuild: `npm rebuild`/`npm install` im `server/` ausführen.
-
-## Nächste Schritte (Ausblick)
-- 3D-Vorschau der Modelle (`react-three-fiber` + `/api/files/:id/preview`)
-- **Druck-Schlange** (Status „gedruckt / geplant" + Sortierung) – Druckdaten sind
-  bereits gespeichert, eine Queue fehlt noch
-- **UI-Feld für den Referenzpreis** `filament_price_per_kg` (aktuell nur per
-  `POST /api/db/settings` änderbar)
-- **Signatur** der Installer (Apple Developer-ID / Windows Code Signing) –
-  aktuell un-signiert (`UNSIGNED=1`), Gatekeeper-Entwarnung nötig
-- **Linux-arm64** im Release (aktuell x86_64) – Matrix ausbauen, wenn nötig
-
-> **Bereits umgesetzt:** Tags/Kategorien, Druckinformationen pro Datei, **SQLite**
-> als Datenspeicher (seit v0.4.0 in `~/.makercottage/`), **Electron-Wrapper**
-> (Option C, v0.7.0), **native Cross-Platform-Builds** + **Auto-GitHub-Release**
-> und **Remote-Update-Check** (`/api/update/check`, v0.7.0). Siehe
-> `FORTSCHRITT.md` (v0.7.0 / T60).
