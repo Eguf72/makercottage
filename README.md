@@ -1,15 +1,38 @@
 # MakerCottage
 
-Ein schlanker **Web-Prototyp**, um **3D-Druck-Dateien** zu verwalten. 
-Er listet die Dateien eines NAS-Ordners auf und erlaubt **Filter und
-Suche**. Neben den Metadaten speichert er **Tags und
-Druckinformationen** in einer lokalen **SQLite**-Datei. Die App ist bewusst
-klein gehalten und für spätere Erweiterungen gebaut (3D-Ansicht,
-Druck-Schlange, Desktop-Wrapper).
+Ein schlanker **3D-Druck-Datei-Manager**: Er listet die Dateien eines **NAS**
+(SMB) **oder** eines **lokalen Verzeichnisses** auf, erlaubt **Filter und Suche**
+und speichert **Tags** und **Druckinformationen** pro Datei in einer lokalen
+**SQLite**-Datei – ohne externe Datenbank.
 
+Seit **v0.7.0** gibt es **native Desktop-Installer** für **macOS, Linux und
+Windows** (gebaut über **GitHub Actions**), ein **Auto-GitHub-Release** und einen
+**Remote-Update-Check** (`GET /api/update/check`). Die App ist bewusst klein
+gehalten und für spätere Erweiterungen gebaut (3D-Vorschau, Druck-Schlange).
+
+---
+
+## Screenshots
+
+Alle Screenshots zeigen **v0.7.0** (Footer: `MakerCottage · UI v0.7.0 · Server
+v0.7.0`); Demo-Daten liegen in `.testprintfiles`.
+
+| Datei-Übersicht | Detailfenster · Druck-Tab | Einstellungen |
+|---|---|---|
+| ![Dateien-Übersicht](docs/screenshots/v070-01-dateien.png) | ![Druck-Tab](docs/screenshots/v070-02-druck.png) | ![Einstellungen](docs/screenshots/v070-03-einstellungen.png) |
+
+- **Dateien:** Liste (nach Name) + **Übersicht**-Panel (Typ-Donut-Chart,
+  „Zuletzt hinzugefügt"); Typ-Filter + Textsuche in der Kopfzeile.
+- **Druck-Tab:** pro Datei editierbar – Druckname, Druckzeit, Druckkosten
+  (automatische Schätzung `≈ (gramm/1000) × Referenzpreis`), Filamente
+  (Material + Menge), Nozzle-Größe, Anzahl Druckplatten, Bemerkung.
+- **Einstellungen:** Quelle wählen – **NAS (SMB)** oder **Lokales Verzeichnis**
+  – Pfad-Picker + Standard-Slicer.
+
+---
 
 ## Voraussetzungen
-- **Node.js 18+** (am besten 20/22) – lokal ist v26 installiert.
+- **Node.js 18+** (am besten 20/22/26) – lokal ist v26 installiert.
 - Entweder ein **NAS** mit **SMB**-Freigabe (im lokalen Netzwerk) **oder** ein
   **lokales Verzeichnis** auf dem Server-Rechner (absoluter Pfad).
 
@@ -50,85 +73,137 @@ cd web && npm run dev
 ```
 Dann im Browser: **http://localhost:5173**
 
-## Desktop-App (portable, v0.6.0)
+---
 
-Aus der Web-App wird ein **portabler Ordner** pro Betriebssystem: ein
-vorkompilierter **Node-Laufzeit**-Bundle + Server + `node_modules` (inkl.
-`better-sqlite3`-Prebuilds) + gebautes Frontend + eine **Start-Datei**. Der
-Launcher startet das Backend **ohne Installation** und öffnet danach den
-Browser – Basis für einen späteren Electron-Wrapper (echtes Fenster).
+## Native Desktop-App (Option C / Electron, v0.7.0)
 
-**Prinzip:** ein geteilter, plattformübergreifender Kern
-(`launcher/launcher.mjs`) startet den Server als **Kindprozess** mit der
-**mitgelieferten** `bin/node`, wartet per TCP auf den Port und öffnet die UI
-per **injizierbarer** `openUI`-Strategie:
+Seit **v0.7.0** ist der **Electron-Wrapper** fertig: ein **echtes natives
+Fenster** (kein Browser), plattformübergreifend, gebaut über **GitHub Actions**.
+Dazu gibt es fertige **Installers** für **macOS / Linux / Windows** im
+[Release `v0.7.0`](https://github.com/Eguf72/makercottage/releases/tag/v0.7.0).
 
-| | jetzt (Option A) | später (Option C: Electron) |
+### Architektur (warum das „einfach" klappt)
+Der **Server läuft im Bundle als Kindprozess auf der mitgelieferten `bin/node`**
+(nicht auf der Electron-Runtime). Dadurch bleibt die `better-sqlite3`-ABI
+stabil und man muss **nichts** re-kompilieren:
+
+| Baustein | Verhalten |
+|---|---|
+| `better-sqlite3` (v13) | **N-API**-basiert, liefert **alle** Plattform-Prebuilds im npm-Paket mit → zur Laufzeit wird der passende `*.node` gewählt, **kein `electron-rebuild`** |
+| `kerberos` / `krb-session-key` | ebenfalls N-API-Prebuilds (Fallback `node-gyp` nur, wenn ein Prebuild fehlt) |
+| `bin/node` | **die einzige** plattformspezifische Sache → pro PLATFORM aus `nodejs.org` geladen (self-contained, nur System-Libs) |
+| `openUI(url)` | injizierbare Strategie: **`mainWindow.loadURL(url)`** statt Browser-Öffnen |
+
+`electron/main.js` ist bewusst schlank und **sicher**:
+`contextIsolation: true`, `nodeIntegration: false` (kein IPC, kein Node im
+Renderer); `MC_HOME = app.getPath('userData')` (plattform-nativ, Daten überleben
+ein Update); sauberes Beenden über
+`window.on('closed') → shutdown('SIGTERM')` und
+`app.on('window-all-closed') → app.quit()` (non-macOS). `launch()` liefert
+`{ child, shutdown }` zurück.
+
+### Installer & Release-Assets
+Das [Release `v0.7.0`](https://github.com/Eguf72/makercottage/releases/tag/v0.7.0)
+enthält **5 Installer** (un-signiert, `UNSIGNED=1`):
+
+| Plattform | Datei | Größe |
 |---|---|---|
-| `openUI(url)` | `open` / `xdg-open` / `start` (Browser) | `new BrowserWindow().loadURL(url)` |
-| Server | Node-Kindprozess `bin/node` | **derselbe** |
-| Rest | identisch | identisch |
+| **macOS** (arm64) | `MakerCottage-0.7.0-arm64.dmg` | ~190 MB |
+| **macOS** (arm64) | `MakerCottage-0.7.0-arm64-mac.zip` | ~184 MB |
+| **Linux** (x86_64) | `MakerCottage-0.7.0-x86_64.AppImage` | ~197 MB |
+| **Linux** (x86_64) | `MakerCottage-0.7.0-amd64.deb` | ~152 MB |
+| **Windows** (x64, NSIS) | `MakerCottage-Setup-0.7.0-x64.exe` | ~168 MB |
 
-→ **Sprung A → C** ist ein Einzeiler (`launch({ openUI: … })`); Server,
-Prebuilds und Frontend bleiben unverändert.
+> **macOS Gatekeeper:** un-signierte `.dmg`/`.zip` werden evtl. mit „unklarer
+> Quelle" blockiert → Rechtsklick → „Öffnen", oder
+> `xattr -dr com.apple.quarantine <App>`.
 
-**Bauen (macOS, arm64):**
-```bash
-cd scripts && ./build-macos.sh
-# → dist/makercottage-macos-arm64/  und  dist/makercottage-macos-arm64.zip
+---
+
+## Native Cross-Platform-Builds & GitHub-Release (CI)
+
+Der Workflow **`.github/workflows/electron-build.yml`** baut **alle drei
+Plattformen parallel** (Matrix) und legt bei einem `v*`-Tag automatisch ein
+**GitHub-Release** mit den Installer-Assets an.
+
 ```
-Das Skript lädt per Default die **offizielle, self-contained** Node-Binär
-(`NODE_SOURCE=download`, Cache in `dist/.node-cache/`) – `otool -L` zeigt
-nur macOS-System-Libs, **kein Homebrew** → lauffähig auf jedem Mac. Am Ende
-läuft ein **Smoke-Test** (Launcher + Port + `/api/config`).
+matrix:
+  macos-latest   → mac   / arm64 →  .dmg + .zip
+  ubuntu-latest  → linux / x64   →  .AppImage + .deb
+  windows-latest → win   / x64   →  Setup-*.exe  (NSIS)
+```
 
-**Starten:** Das **gebaute** `MakerCottage.command` doppelklicken → Browser
-öffnet `http://127.0.0.1:4000`. Das Terminal-Fenster hält das Backend am Leben
-(Tab/Schließen beendet es). NAS-Zugang wie gewohnt im Tab „Einstellungen".
+Jeder Job: `actions/checkout` → `setup-node@v4` (Node 26, passend zu den
+N-API-Prebuilds) → `setup-python@v5` (node-gyp-Fallback) → `bash
+scripts/build-electron.sh` bzw. `pwsh scripts/build-electron.ps1`
+(`UNSIGNED=1`, lädt pro Plattform die passende `bin/node` von `nodejs.org`) →
+**nur** Installer-Dateien hochladen (`*.AppImage/*.deb/*.dmg/*.zip/*.exe`,
+keine `*-unpacked/`-Verzeichnisse → vermeidet den „is a directory"-Fehler beim
+Asset-Upload).
 
-> **Wichtig – richtige Datei:** Doppelklickbar ist das `MakerCottage.command`
-> im **gebauten Ordner** `dist/makercottage-macos-arm64/` (dort liegt die
-> mitgelieferte `bin/node`). Die Datei in `scripts/launchers/` ist nur die
-> **Vorlage** ohne `bin/node` – ein Start aus dem Quell-Ordner meldet jetzt
-> eine klare Fehlerbox und wartet auf Enter (statt blitzschnell zu schließen).
+### Auslöser
+| Trigger | Resultat |
+|---|---|
+| **`push` eines `v*`-Tags** | 3 Builds **+ Auto-Release** mit Installer-Assets |
+| **`workflow_dispatch`** (Actions-Tab, „Run workflow") | 3 Builds, **kein** Release |
 
-**Erster Start (Gatekeeper):** macOS blockt evtl. das Skript mit
-„unklarer Quelle" → Rechtsklick → „Öffnen", oder:
-`xattr -dr com.apple.quarantine <Ordner>`.
+> **Wichtig – Tag-Verweis:** GitHub Actions lädt das Workflow-YAML aus dem
+> Commit, auf den der **Tag** zeigt. Ein `v*`-Tag muss deshalb auf den
+> **aktuellsten** Commit zeigen, sonst läuft ein veraltetes YAML. (In der
+> Praxis hat ein zu altes Tag-Verweis erst „directory"/`--clobber`-Fehler
+> erzeugt – seither auf den Fix-Commit `702f9ab` neu gesetzt.)
+>
+> **Praxis-Tipp:** Der `push`-Trigger kann vom YAML-Cache betroffen sein; ein
+> **`workflow_dispatch`** im Actions-Tab ist der verlässliche Auslöser für einen
+> manuellen Build. Für ein **Release** ist ein frisches `v*`-Tag nötig.
 
-> **Voraussetzung:** `better-sqlite3` v13 liefert fertige Prebuilds für **alle**
-> Zielplattformen im Paket; der Loader wählt automatisch die richtige aus –
-> das einzige native Modul „passt" ohne Sortieren. Linux-/Windows-Builds sind
-> vorbereitet (`MakerCottage.sh`/`.bat`), laufen aber erst auf der jeweiligen
-> Zielplattform.
+### Release-Notes (automatisch erzeugt)
+Die Release-Notes enthalten einen kurzen Hinweis auf un-signierte Builds, die
+Gatekeeper-Entwarnung (macOS) und dass **Nutzer-Daten** in `.makercottage`
+(MC_HOME) ein Update überstehen.
 
-## Aktualisieren
+---
+
+## Aktualisieren (ohne Datenverlust)
+
 Ein Update **überschreibt nur den Code, nicht die Daten** (DB + `config.json`
 liegen in `~/.makercottage/`, also außerhalb des Code-Ordners). Deshalb:
 
-1. **Neuen Ordner _daneben_ entpacken** (Zip neben den bestehenden ziehen –
-   _nicht_ über den alten).
-2. Darin die Start-Datei ausführen: `MakerCottage.command` (macOS),
-   `MakerCottage.sh` (Linux) bzw. `MakerCottage.bat` (Windows).
-3. Das Backend startet neu, der Browser öffnet sich.
-4. Alle Nutzerdaten (DB in `~/.makercottage/makercottage.db`, `config.json`)
+1. **Neuen Installer/Ordner _daneben_ installieren** (neue Version neben der
+   alten – nicht darüber).
+2. Neue App starten; altes Profil bleibt erhalten.
+3. Alle Nutzerdaten (DB in `~/.makercottage/makercottage.db`, `config.json`)
    bleiben **unberührt**. Alte Daten aus `.cache/makercottage.db` +
    `server/config.json` werden beim ersten Start automatisch nach
    `~/.makercottage/` migriert (Altkopien bleiben als Backup).
 
-> **CLI-Info (v0.6.0):** `MakerCottage.command --version` zeigt Version +
-> Daten-Ordner; `--check` prüft **automatisch** auf ein neues Release (GitHub,
-> via `MC_UPDATE_REPO`, Default `Eguf72/makercottage`) und meldet „Update verfügbar
-> v… · Herunterladen" – ohne Konfiguration (bzw. bei Fehlern) den manuellen Pfad;
-> `--help` die Übersicht. Ohne Flag startet wie gewohnt das Backend + UI. Der
-> UI-Footer meldet ebenfalls „⚠ Update verfügbar v… · Herunterladen", sobald eine
-> neuere Version da ist (Endpunkt `GET /api/update/check`, serverseitig – umgeht
-> den Browser-CORS gegen GitHub).
->
-> **Umgebung (optional):** `MC_UPDATE_REPO=owner/repo` (leer = kein Remote-Check,
-> manueller Pfad), `MC_UPDATE_GH_TOKEN` (Bearer → GitHub-Rate-Limit 60→5000/h),
-> `MC_UPDATE_GITHUB_API` (GitHub-Enterprise/Proxy), `MC_UPDATE_TIMEOUT_MS` (8 s),
-> `MC_UPDATE_CACHE_MS` (5 min). Siehe `AUFGABEN.md` T58 / `FORTSCHRITT.md` v0.6.0.
+### Remote-Update-Check (`GET /api/update/check`, P2b)
+Der UI-Footer meldet **„⚠ Update verfügbar v… · Herunterladen"**, sobald eine
+neuere GitHub-Version da ist. Der Check läuft **serverseitig** (`server/updatecheck.js`)
+– er umgeht den Browser-CORS gegen GitHub und antwortet auch bei Fehlern
+graceful (`available:false`, kein Crash).
+
+**Logik:** `current` (lokale `VERSION` aus `web/src/version.js`) wird gegen
+`latest` (GitHub `releases/latest`, ohne `v`-Prefix, Prerelease-Teil
+ausgeklammert) verglichen:
+
+| `current` | `latest` | `available` |
+|---|---|---|
+| `0.6.0` | `0.7.0` | **`true`** (Update) |
+| `0.7.0` | `0.7.0` | `false` |
+| `0.8.0` | `0.7.0` | `false` |
+
+Antwort: `{ current, latest, available, releaseTitle, releaseUrl, downloadUrl,
+notes }`. Erst ein **existierendes** GitHub-Release mit Assets lässt den
+Endpunkt sinnvoll antworten – dafür sorgt die CI oben.
+
+> **Umgebung (optional):** `MC_UPDATE_REPO=owner/repo` (Default
+> `Eguf72/makercottage`; leer = kein Remote-Check), `MC_UPDATE_GH_TOKEN`
+> (Bearer → GitHub-Rate-Limit 60 → 5000/h), `MC_UPDATE_GITHUB_API`
+> (GitHub-Enterprise/Proxy), `MC_UPDATE_TIMEOUT_MS` (8 s), `MC_UPDATE_CACHE_MS`
+> (5 min). Siehe `FORTSCHRITT.md` v0.7.0 / T60.
+
+---
 
 ## Optik / Branding
 - **Logo:** transparentes SVG (`MakerCottage_logo.svg`), hellgrauer Schriftzug +
@@ -146,46 +221,52 @@ liegen in `~/.makercottage/`, also außerhalb des Code-Ordners). Deshalb:
   | `--muted` | `#aeb9b1` | Sekundärtext |
   | `--accent` | `#e8833a` | Akzent (Orange, passt zum Logo-Pfeil) |
   | `--border` | `#55685c` | Linien/Ränder |
-- **Footer:** `MakerCottage · v<VERSION>` + eine zweite, gedämpfte Zeile
-  `created by Eguf72`.
+- **Footer:** `MakerCottage · UI v<VERSION> · Server v<VERSION>` + eine zweite,
+  gedämpfte Zeile `created by Eguf72`.
+- **Icons:** `.icns` / `.ico` / `.png` werden aus `MakerCottage_Favicon.png`
+  generiert (`scripts/generate-icons.sh`, Node-Fallback `scripts/ico-from-png.mjs`).
 
 ## Versionierung
 Die Versionsnummer hat **eine einzige Quelle**: `web/src/version.js`
-(`export const VERSION = '0.0.1'`); `web/package.json` ist darauf abgestimmt.
-Der Footer importiert sie (`v{VERSION}`).
+(`export const VERSION = '0.7.0'`); `server/package.json` und `web/package.json`
+sind darauf abgestimmt. Der Footer importiert sie (`v{VERSION}`).
 
-Schema `MAJOR.MINOR.PATCH` (Major bleibt `0`), ausgehend von **0.0.1**:
+Schema `MAJOR.MINOR.PATCH` (Major bleibt `0`):
 
 | Anlass | Aktion | Beispiel |
 |---|---|---|
-| Fehlerkorrektur | 3. Zähler (Patch) **+1** | `0.0.1 → 0.0.2` |
-| Neue Funktion | 2. Zähler (Minor) **+1**, 3. auf **0** | `0.0.1 → 0.1.0` |
+| Fehlerkorrektur | 3. Zähler (Patch) **+1** | `0.7.0 → 0.7.1` |
+| Neue Funktion | 2. Zähler (Minor) **+1**, 3. auf **0** | `0.7.0 → 0.8.0` |
 
-Nach jeder Änderung nur die `VERSION` in `version.js` anpassen und `npm run build`
-(im Produktionsbetrieb ohne Neustart).
+Nach jeder Änderung nur die `VERSION` in `version.js` anpassen, `npm run build`
+(Produktivbetrieb ohne Neustart) und – für eine neue Version – einen `v*`-Tag
+pushen (triggert Build + Release, siehe oben).
 
-## Funktionen (Prototyp)
+## Funktionen
 - **Untermenü „Dateien / Einstellungen"** (Tab in der Kopfzeile, orange aktiv)
 - Datei-Liste **nur nach Name** im Tab **„Dateien"** (Details im Detailfenster);
-  Typ-Filter und Textsuche bleiben oben in der Leiste; die Liste ist
-  standardmäßig nach Name aufsteigend sortiert. Angezeigt wird der
-  **Druckname** (Platzhalter beim Scannen: der Dateiname), den man im
-  Detailfenster beliebig überschreiben kann.
+  Typ-Filter und Textsuche bleiben oben in der Leiste; standardmäßig nach Name
+  aufsteigend sortiert. Angezeigt wird der **Druckname** (Platzhalter beim
+  Scannen: der Dateiname), den man im Detailfenster beliebig überschreiben kann.
+- **Übersicht-Panel** im Tab „Dateien": Typ-Verteilung (Donut-Chart) +
+  „Zuletzt hinzugefügt".
 - **Detailfenster:** klickbarer Dateiname öffnet einen Modal mit zwei Tabs
   (**Druck** aktiv / **Metadaten**), schließbar per ✕, ESC oder Hintergrund-Klick.
 - **Druck-Tab:** pro Datei editierbar – Name, Druckzeit (Min), Druckkosten (€),
-  benötigte Filamente (Material + Menge je Zeile, mehrfach), Nozelgröße, Anzahl
-  Druckplatten, Bemerkung; **automatische Kostenschätzung**
+  benötigte Filamente (Material + Menge je Zeile, mehrfach), Nozzle-Größe,
+  Anzahl Druckplatten, Bemerkung; **automatische Kostenschätzung**
   `(gramm/1000) × Referenzpreis` mit „≈ übernehmen".
 - **Metadaten-Tab:** Endung, Größe, letzte Änderung, Erstellt (optional),
   **vollständiger Pfad**, DB-ID (optional).
 - **SQLite-Persistenz** (`~/.makercottage/makercottage.db`): Metadaten, Tags und
   Druckdaten überleben ein Neuladen und einen neuen Scan (beim Scan werden die
   Druck-Felder nicht überschrieben).
-- **Quelle wählen:** „NAS (SMB)" (Standard) oder **„Lokales Verzeichnis"** im Tab
-  **„Einstellungen"**; `SOURCE` wird in `~/.makercottage/config.json` gespeichert.
+- **Quelle wählen:** „NAS (SMB)" (Standard) oder **„Lokales Verzeichnis"** im
+  Tab **„Einstellungen"**; `SOURCE` wird in `~/.makercottage/config.json` gespeichert.
 - **Pfad-Picker:** Pfad durchstöbern statt tippen – Breadcrumb +
   „✓ Diesen Pfad wählen", funktioniert für NAS und lokal.
+- **Native Desktop-App** (macOS / Linux / Windows) via Electron + GitHub-Actions-Release.
+- **Remote-Update-Check** im Footer (serverseitig, CORS-sicher).
 - NAS-Zugang über Formular + **Netzwerk-Suche** („NAS finden") im Tab **„Einstellungen"**
 - Fehler-/Leerzustände
 - Branding (Logo/Favicon/Oliv-Farbe) + Versions- & Credit-Zeile im Footer
@@ -207,9 +288,10 @@ Nach jeder Änderung nur die `VERSION` in `version.js` anpassen und `npm run bui
 | POST | `/api/db/file/print` | Druckinformationen einer Datei aktualisieren (Upsert nach Name) |
 | GET  | `/api/db/settings?key=` | Einstellung(en) lesen (z. B. `filament_price_per_kg`) |
 | POST | `/api/db/settings` | Einstellung schreiben (`key`/`value`) |
+| GET  | `/api/update/check` | Remote-Update-Check gegen GitHub `releases/latest` (P2b) |
 
-> **Referenzpreis** `filament_price_per_kg` (Standard `20` €/kg) liegt in der DB und
-> wird von `GET /api/db/file` als `pricePerKg` mitgeliefert – er treibt die
+> **Referenzpreis** `filament_price_per_kg` (Standard `20` €/kg) liegt in der DB
+> und wird von `GET /api/db/file` als `pricePerKg` mitgeliefert – er treibt die
 > automatische Kostenschätzung im Druck-Tab. Er ist im UI nicht direkt editierbar.
 
 ## Konfiguration
@@ -225,6 +307,8 @@ Nach jeder Änderung nur die `VERSION` in `version.js` anpassen und `npm run bui
 | `NAS_PORT` | `445` | SMB-Port |
 | `MAX_DEPTH` | `0` | Such-Tiefe (0 = nur direkte Ebene) |
 | `PORT` | `4000` | Port des Backends |
+| `MC_HOME` | `~/.makercottage` | Daten-Ordner (DB + config); überschreibbar |
+| `MC_UPDATE_REPO` | `Eguf72/makercottage` | Remote-Update-Check (leer = aus) |
 
 ## Datenbank (SQLite)
 Alle Dateien und ihre Metadaten werden in einer lokalen SQLite-Datei
@@ -252,8 +336,9 @@ gespeichert – ohne externe DB-Instanz.
   damit gespeicherte Druckdaten über einen Neuscan hinweg erhalten bleiben.
 - **Migration:** Fehlende Druck-Spalten werden bei Eröffnung idempotent
   nachgetragen (`ALTER TABLE … ADD COLUMN`, nicht destruktiv).
-- `better-sqlite3` ist ein **natives Modul** → bei Plattformwechsel
-  `npm rebuild`/`npm install` im `server/` ausführen.
+- `better-sqlite3` ist ein **natives Modul**, nutzt aber **N-API** → Prebuilds
+  sind im Paket enthalten; bei einem echten Plattformwechsel ohne passenden
+  Prebuild: `npm rebuild`/`npm install` im `server/` ausführen.
 
 ## Nächste Schritte (Ausblick)
 - 3D-Vorschau der Modelle (`react-three-fiber` + `/api/files/:id/preview`)
@@ -261,11 +346,12 @@ gespeichert – ohne externe DB-Instanz.
   bereits gespeichert, eine Queue fehlt noch
 - **UI-Feld für den Referenzpreis** `filament_price_per_kg` (aktuell nur per
   `POST /api/db/settings` änderbar)
-- Desktop-Wrapper: **Option A (portabler Launcher) Fertig v0.3.0** (macOS,
-  `MakerCottage.command`); **Option C (Electron)** + Linux-/Windows-Builds offen
-  (Kern bereits Electron-fähig, `launch({ openUI })` injizierbar)
+- **Signatur** der Installer (Apple Developer-ID / Windows Code Signing) –
+  aktuell un-signiert (`UNSIGNED=1`), Gatekeeper-Entwarnung nötig
+- **Linux-arm64** im Release (aktuell x86_64) – Matrix ausbauen, wenn nötig
 
-> **Bereits umgesetzt** (früher als Ausblick geführt): Tags/Kategorien,
-> Druckinformationen pro Datei und **SQLite** als Datenspeicher
-> (früher `.cache/makercottage.db`, seit v0.4.0 in `~/.makercottage/`) –
-> siehe Detailfenster oben.
+> **Bereits umgesetzt:** Tags/Kategorien, Druckinformationen pro Datei, **SQLite**
+> als Datenspeicher (seit v0.4.0 in `~/.makercottage/`), **Electron-Wrapper**
+> (Option C, v0.7.0), **native Cross-Platform-Builds** + **Auto-GitHub-Release**
+> und **Remote-Update-Check** (`/api/update/check`, v0.7.0). Siehe
+> `FORTSCHRITT.md` (v0.7.0 / T60).
