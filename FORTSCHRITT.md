@@ -494,8 +494,8 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
   Default-Ansicht, Detail erscheint bei Auswahl wie gewohnt.
 - **Build:** `npm run build` OK (CSS 8.65 → 10.31 kB durch neue Styles,
   JS ~162.5 → 165.17 kB durch `Overview.jsx`).
-- **Screenshots:** `docs/screenshots/mc-08-overview-1024.png`,
-  `mc-09-overview-780.png`.
+- **Screenshots:** `docs/screenshots/_archive/mc-08-overview-1024.png`,
+  `_archive/mc-09-overview-780.png` (archiviert, v0.3.x).
 
 ---
 
@@ -507,7 +507,7 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
   – `.table td` bekommt `white-space: nowrap` (Name bleibt auf einer Zeile).
 - **Verifiziert:** Logik isoliert getestet (70→30, 36→30, 20/29 unverändert);
   reale UI via Chrome-Headless/CDP: alle Zellen `<= 30` Zeichen, `title` =
-  voller Name. Screenshot `docs/screenshots/mc-07-name-trunc.png`.
+  voller Name. Screenshot `docs/screenshots/_archive/mc-07-name-trunc.png`.
 - **Nicht verändert:** Funktion unverändert; kurze Namen zeigen voll, nur
   längere werden gekürzt.
 
@@ -528,7 +528,7 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
     kein Überlauf ✓
   - 780px: `flexDirection: column`, beide Spalten 706px breit, Detail unter der
     Liste, `overflow: false` ✓ (vorher `true`)
-  - 4 Zustands-Screenshots in `docs/screenshots/` (mc-01 … mc-06).
+  - 4 Zustands-Screenshots in `docs/screenshots/_archive/` (mc-01 … mc-06).
 - **Nicht verändert:** Funktion unverändert; nur die Optik bei enger Breite.
 - **Build:** `npm run build` OK (CSS 8.38 → 8.63 kB, JS unverändert ~162.5 kB).
 

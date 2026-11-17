@@ -1,5 +1,10 @@
 # MakerCottage
 
+![Version](https://img.shields.io/badge/Version-0.7.0-e8833a)
+![Plattformen](https://img.shields.io/badge/Plattformen-macOS%20%7C%20Linux%20%7C%20Windows-2f80ed)
+![CI+%20+%20Release](https://img.shields.io/github/actions/workflow/status/Eguf72/makercottage/electron-build.yml)
+![Signatur](https://img.shields.io/badge/Signatur-un--signiert-f0ad4e)
+
 Ein schlanker **3D-Druck-Datei-Manager**: Er listet die Dateien eines **NAS**
 (SMB) **oder** eines **lokalen Verzeichnisses** auf, erlaubt **Filter und Suche**
 und speichert **Tags** und **Druckinformationen** pro Datei in einer lokalen
@@ -9,6 +14,24 @@ Seit **v0.7.0** gibt es **native Desktop-Installer** für **macOS, Linux und
 Windows** (gebaut über **GitHub Actions**), ein **Auto-GitHub-Release** und einen
 **Remote-Update-Check** (`GET /api/update/check`). Die App ist bewusst klein
 gehalten und für spätere Erweiterungen gebaut (3D-Vorschau, Druck-Schlange).
+
+## Inhaltsverzeichnis
+
+- [Screenshots](#screenshots)
+- [Voraussetzungen](#voraussetzungen)
+- [Installation](#installation)
+- [NAS-Zugang eintragen](#nas-zugang-eintragen-2-wege)
+- [Starten](#starten)
+- [Projektstruktur](#projektstruktur)
+- [Native Desktop-App (Electron)](#native-desktop-app-option-c-electron-v070)
+- [Native Cross-Platform-Builds & Release](#native-cross-platform-builds-github-release-ci)
+- [Aktualisieren](#aktualisieren-ohne-datenverlust)
+- [Optik / Branding](#optik-branding)
+- [Versionierung](#versionierung)
+- [Funktionen](#funktionen)
+- [API](#api)
+- [Konfiguration](#konfiguration)
+- [Datenbank](#datenbank-sqlite)
 
 ---
 
@@ -72,6 +95,25 @@ cd server && npm run dev
 cd web && npm run dev
 ```
 Dann im Browser: **http://localhost:5173**
+
+## Projektstruktur
+
+```
+makercottage/
+├─ server/            # Backend (Fastify + better-sqlite3): API, Scan, Update-Check
+├─ web/               # Frontend (Vite/React); version.js = Single Source of Truth
+├─ electron/          # Native-Wrapper (Option C): main.js + electron-builder-Konfig
+├─ launcher/          # Launcher-Kern (launcher.mjs): Kindprozess + openUI-Strategie
+├─ scripts/           # Build-/Icon-Skripte (build-electron.sh/.ps1, generate-icons.sh)
+├─ bin/               # Mitgelieferte Node-Binär (self-contained, pro Plattform)
+├─ docs/screenshots/  # Aktuelle Screenshots (v070-*); _archive/ = frühere Stände
+├─ FORTSCHRITT.md     # Protokoll / Changelog
+├─ AUFGABEN.md        # Aufgaben / Backlog
+└─ README.md          # diese Datei
+```
+
+> **Nutzer-Daten liegen nie im Code-Ordner:** DB + config wohnen in
+> `~/.makercottage/` (`MC_HOME`, überschreibbar) und überstehen ein Update.
 
 ---
 
