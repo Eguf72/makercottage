@@ -36,9 +36,9 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
 - **Verifiziert (konservativ):** `bash -n scripts/build-electron.sh` grün; YAML gültig
   (Ruby-Parser: `jobs: build, release`, Matrix mac-arm64/linux-x64/win-x64);
   Lockfiles (web/server/electron) mit `0.7.0`-`package.json` in Sync → `npm ci`-sicher.
-  **Live-Status (2026-11-16, ~18:16Z, aktualisiert):** GitHub-Actions ist
+  **Live-Status (2026-11-16, ~20:38Z, ABBGESCHLOSSEN ✅):** GitHub-Actions ist
   **aktiv** (`GET /actions/permissions` → `enabled:true, allowed_actions:all`;
-  das „Actions inaktiv"-Fazit oben war veraltet). Fix-Verlauf (3 Commits,
+  das „Actions inaktiv"-Fazit oben war veraltet). Fix-Verlauf (4 Bug-Fixes,
   Tag `v0.7.0` jeweils neu gepusht → neuer Build+Release-Run):
   - **Run `43901488096` (commit `dbda39a`):** win ✅ · linux ❌ `mktemp: too
     few X's in template 'mcnode'` (19 s) · mac cancelled (extern) · release
@@ -56,14 +56,34 @@ Aufgabenliste: `AUFGABEN.md` · Gesamtplan: siehe Chat-Verlauf.
     kein gültiges Schema-Feld) → beide entfernt; `homepage`+`maintainer` sind
     das lokal-validierte Set (AppImage 207 MB + deb 155 MB GRÜN). Commit
     `d609981`.
-  - **Lokaler Cross-Build-Validierung** (macOS-Host): `electron-builder --linux`
-    baut `MakerCottage-0.7.0-arm64.AppImage` + `.deb` ohne Schema-Fehler.
-  - **Aktueller Run `43915028030` (commit `d609981`):** win-x64 ✅ ·
-    linux-x64 ✅ · **mac-arm64 noch im GitHub-Runner-Queue** (macos-latest-
-    Kapazität; im früheren Run lief mac in 4 Min durch) · release wartet
-    (`needs: build`).
-  **Nächster Schritt:** mac-Job durchlaufen lassen (GitHub-Queue), dann
-  Auto-Release mit 3 Artifacts → P2b `/api/update/check` `available:true`.
+  - **Bug #4 (Root Cause aller „directory"-/`--clobber`-Fehler):** Der
+    Remote-Tag `v0.7.0` zeigte auf den **veralteten** Commit `e7f662d`
+    (noch `release-assets/*` ohne Installer-Filter + `--clobber`-Rest).
+    GitHub Actions lädt beim Tag-Push das **YAML aus dem Tag-Commit**, nicht
+    den aktuellsten – daher lief immer ein altes YAML. Außerdem lud der
+    Build-Job `dist/electron/*` mitsamt den unpacked-Verzeichnissen
+    (`linux-arm64-unpacked/`, `mac-arm64/`) hoch → „is a directory".
+    → Installer-Only-Upload (`*.AppImage/*.deb/*.dmg/*.zip/*.exe`),
+    Release lädt `release-assets/*` direkt (kein zip, kein `--clobber`),
+    Tag auf Fix-Commit `702f9ab` neu gesetzt. Commit `702f9ab`.
+  - **ERFOLGREICHER RUN `43942745294` (commit `702f9ab`):** mac-arm64 ✅ ·
+    linux-x64 ✅ · win-x64 ✅ · **`Create GitHub release` ✅**
+    (mac-Job lag ~12 Min im Runner-Queue, dann 2 Min durch).
+  - **Release `v0.7.0` live** mit **5 Installer-Assets**
+    (`https://github.com/Eguf72/makercottage/releases/tag/v0.7.0`):
+    `MakerCottage-0.7.0-x86_64.AppImage` (197 MB) · `-amd64.deb` (152 MB) ·
+    `-arm64.dmg` (189 MB) · `-arm64-mac.zip` (184 MB) · `Setup-0.7.0-x64.exe`
+    (167 MB).
+  - **P2b `/api/update/check` END-TO-END-GRÜN** (echtes GitHub-Release,
+    3 Fälle): `current=0.6.0` → `available:true`, `latest:0.7.0`,
+    `downloadUrl` zeigt auf den `.deb`-Asset · `current=0.7.0` →
+    `available:false` (gleich) · `current=0.8.0` → `available:false`
+    (neuer). `source: github:Eguf72/makercottage`, `error:null`.
+  **Status: ABGESCHLOSSEN.** Native Cross-Platform-Builds (Linux/macOS/Windows)
+  über GitHub-Actions CI + Auto-GitHub-Release mit 3 Plattform-Installern;
+  P2b-Remote-Check liefert `available:true`. Trigger: `v*`-Tag-Push (Baut +
+  Release) bzw. `workflow_dispatch` (nur Builds). macOS-Runner-Kapazität ist
+  extern transient (Re-Run nach Queue-Ausfall reicht).
 
 ---
 
